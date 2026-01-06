@@ -113,7 +113,7 @@ No upcoming events from your communities\\.
     (registrations || []).map((r: any) => r.event_id)
   );
 
-  const header = '📅 *Upcoming Events*\n\n✅ = You are registered\nTap an event to view details\\.';
+  const header = '📅 *Upcoming Events*\n\n✅ \\= You are registered\nTap an event to view details\\.';
 
   const eventsReplyOptions = {
     parse_mode: 'MarkdownV2' as const,
@@ -159,7 +159,7 @@ async function handleEventsPage(ctx: Context): Promise<void> {
     (registrations || []).map((r: any) => r.event_id)
   );
 
-  const header = '📅 *Upcoming Events*\n\n✅ = You are registered\nTap an event to view details\\.';
+  const header = '📅 *Upcoming Events*\n\n✅ \\= You are registered\nTap an event to view details\\.';
 
   await ctx.editMessageText(header, {
     parse_mode: 'MarkdownV2',

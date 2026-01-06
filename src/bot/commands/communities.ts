@@ -59,7 +59,7 @@ async function handleCommunities(ctx: Context): Promise<void> {
   }
 
   const header = telegramUser
-    ? '📋 *Communities*\n\n✅ = You are a member\nTap a community to view details\\.'
+    ? '📋 *Communities*\n\n✅ \\= You are a member\nTap a community to view details\\.'
     : '📋 *Communities*\n\nLogin to join communities and receive event notifications\\.';
 
   // Try to edit if possible, otherwise send new message
@@ -103,7 +103,7 @@ async function handleCommunitiesPage(ctx: Context): Promise<void> {
   }
 
   const header = telegramUser
-    ? '📋 *Communities*\n\n✅ = You are a member\nTap a community to view details\\.'
+    ? '📋 *Communities*\n\n✅ \\= You are a member\nTap a community to view details\\.'
     : '📋 *Communities*\n\nLogin to join communities and receive event notifications\\.';
 
   await ctx.editMessageText(header, {
@@ -318,7 +318,7 @@ async function handleCommunityEvents(ctx: Context): Promise<void> {
   }
 
   await ctx.editMessageText(
-    `📅 *Events from ${escapeMarkdown(community.name)}*\n\n✅ = You are registered`,
+    `📅 *Events from ${escapeMarkdown(community.name)}*\n\n✅ \\= You are registered`,
     {
       parse_mode: 'MarkdownV2',
       ...eventsKeyboard(events, userRegisteredEventIds, 0),
