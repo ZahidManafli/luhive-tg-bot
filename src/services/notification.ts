@@ -116,15 +116,15 @@ export async function notifyEventUpdate(
   let sent = 0;
   let failed = 0;
 
-  const emojiMap = { cancelled: '❌', updated: '📝', deleted: '🗑️' };
-  const titleMap = { cancelled: 'Event Cancelled', updated: 'Event Updated', deleted: 'Event Deleted' };
+  const emojiMap = { cancelled: '❌', updated: '📝', deleted: '❌' };
+  const titleMap = { cancelled: 'Event Cancelled', updated: 'Event Updated', deleted: 'Event Cancelled by Host' };
   const emoji = emojiMap[updateType];
   const title = titleMap[updateType];
 
   const messageMap = {
     cancelled: 'This event has been cancelled\\. We apologize for any inconvenience\\.',
     updated: 'This event has been updated\\. Please check the event page for the latest details\\.',
-    deleted: 'This event has been deleted and is no longer available\\.',
+    deleted: 'This event has been cancelled by the host and is no longer available\\.',
   };
 
   const message = `${emoji} *${title}*\n\n` +
