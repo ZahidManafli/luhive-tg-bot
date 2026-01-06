@@ -153,26 +153,36 @@ export async function getCommunityMemberCount(communityId: string): Promise<numb
 export async function getCommunityMembersWithTelegram(
   communityId: string
 ): Promise<{ telegram_id: number; chat_id: number; user_id: string }[]> {
-  const { data, error } = await supabase
+  // Step 1: Get all community members' user_ids
+  const { data: members, error: membersError } = await supabase
     .from('community_members')
-    .select(`
-      user_id,
-      telegram_users!inner (
-        telegram_id,
-        chat_id
-      )
-    `)
+    .select('user_id')
     .eq('community_id', communityId);
 
-  if (error) {
-    console.error('Error fetching community telegram members:', error);
+  if (membersError || !members || members.length === 0) {
+    if (membersError) {
+      console.error('Error fetching community members:', membersError);
+    }
     return [];
   }
 
-  return (data || []).map((item: any) => ({
-    telegram_id: item.telegram_users.telegram_id,
-    chat_id: item.telegram_users.chat_id,
-    user_id: item.user_id,
+  const userIds = members.map((m) => m.user_id);
+
+  // Step 2: Get telegram users for those user_ids
+  const { data: telegramUsers, error: telegramError } = await supabase
+    .from('telegram_users')
+    .select('telegram_id, chat_id, user_id')
+    .in('user_id', userIds);
+
+  if (telegramError) {
+    console.error('Error fetching telegram users:', telegramError);
+    return [];
+  }
+
+  return (telegramUsers || []).map((item) => ({
+    telegram_id: Number(item.telegram_id),
+    chat_id: Number(item.chat_id),
+    user_id: item.user_id!,
   }));
 }
 
