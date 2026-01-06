@@ -54,35 +54,62 @@ export async function notifyEventUpdate(
 ): Promise<{ sent: number; failed: number }> {
   const community = await getCommunityById(event.community_id);
   if (!community) {
+    console.error('Community not found for event update notification');
     return { sent: 0, failed: 0 };
   }
 
-  // Step 1: Get registered user_ids for this event
-  const { data: registrations, error: regError } = await supabase
-    .from('event_registrations')
-    .select('user_id')
-    .eq('event_id', event.id)
-    .eq('approval_status', 'approved');
+  let recipients: { telegram_id: number; chat_id: number; user_id: string }[] = [];
 
-  if (regError || !registrations || registrations.length === 0) {
+  // For deleted events, notify all community members (registrations are cascade-deleted)
+  // For cancelled/updated events, notify only registered users
+  if (updateType === 'deleted') {
+    recipients = await getCommunityMembersWithTelegram(event.community_id);
+    console.log(`Found ${recipients.length} community members to notify about deletion`);
+  } else {
+    // Step 1: Get registered user_ids for this event
+    const { data: registrations, error: regError } = await supabase
+      .from('event_registrations')
+      .select('user_id')
+      .eq('event_id', event.id)
+      .eq('approval_status', 'approved');
+
     if (regError) {
       console.error('Error fetching event registrations:', regError);
+      return { sent: 0, failed: 0 };
     }
-    return { sent: 0, failed: 0 };
-  }
 
-  const userIds = registrations.map((r) => r.user_id);
+    if (!registrations || registrations.length === 0) {
+      console.log('No registered users found for event update notification');
+      return { sent: 0, failed: 0 };
+    }
 
-  // Step 2: Get telegram users for those user_ids
-  const { data: telegramUsers, error: telegramError } = await supabase
-    .from('telegram_users')
-    .select('telegram_id, chat_id, user_id')
-    .in('user_id', userIds);
+    const userIds = registrations.map((r) => r.user_id);
 
-  if (telegramError || !telegramUsers || telegramUsers.length === 0) {
+    // Step 2: Get telegram users for those user_ids
+    const { data: telegramUsers, error: telegramError } = await supabase
+      .from('telegram_users')
+      .select('telegram_id, chat_id, user_id')
+      .in('user_id', userIds);
+
     if (telegramError) {
       console.error('Error fetching telegram users:', telegramError);
+      return { sent: 0, failed: 0 };
     }
+
+    if (!telegramUsers || telegramUsers.length === 0) {
+      console.log('No telegram users found for event update notification');
+      return { sent: 0, failed: 0 };
+    }
+
+    recipients = telegramUsers.map((t) => ({
+      telegram_id: Number(t.telegram_id),
+      chat_id: Number(t.chat_id),
+      user_id: t.user_id!,
+    }));
+  }
+
+  if (recipients.length === 0) {
+    console.log(`No recipients found for ${updateType} notification`);
     return { sent: 0, failed: 0 };
   }
 
@@ -108,16 +135,16 @@ export async function notifyEventUpdate(
       ? `\n\n🔗 [View Event](${config.appBaseUrl}/c/${community.slug}/events/${event.id})`
       : '');
 
-  for (const telegramInfo of telegramUsers) {
+  for (const recipient of recipients) {
     try {
-      await bot.telegram.sendMessage(Number(telegramInfo.chat_id), message, {
+      await bot.telegram.sendMessage(recipient.chat_id, message, {
         parse_mode: 'MarkdownV2',
         link_preview_options: { is_disabled: true },
       });
       sent++;
       await sleep(50);
     } catch (error) {
-      console.error(`Failed to send update notification to chat ${telegramInfo.chat_id}:`, error);
+      console.error(`Failed to send update notification to chat ${recipient.chat_id}:`, error);
       failed++;
     }
   }
