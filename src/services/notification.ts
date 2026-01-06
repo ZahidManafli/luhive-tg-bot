@@ -50,48 +50,67 @@ export async function notifyNewEvent(
 export async function notifyEventUpdate(
   bot: Telegraf,
   event: Event,
-  updateType: 'cancelled' | 'updated'
+  updateType: 'cancelled' | 'updated' | 'deleted'
 ): Promise<{ sent: number; failed: number }> {
   const community = await getCommunityById(event.community_id);
   if (!community) {
     return { sent: 0, failed: 0 };
   }
 
-  // Get members who are registered for this event AND have telegram linked
-  const { data: registrations } = await supabase
+  // Step 1: Get registered user_ids for this event
+  const { data: registrations, error: regError } = await supabase
     .from('event_registrations')
-    .select(`
-      user_id,
-      telegram_users!inner (
-        telegram_id,
-        chat_id
-      )
-    `)
+    .select('user_id')
     .eq('event_id', event.id)
     .eq('approval_status', 'approved');
 
-  if (!registrations || registrations.length === 0) {
+  if (regError || !registrations || registrations.length === 0) {
+    if (regError) {
+      console.error('Error fetching event registrations:', regError);
+    }
+    return { sent: 0, failed: 0 };
+  }
+
+  const userIds = registrations.map((r) => r.user_id);
+
+  // Step 2: Get telegram users for those user_ids
+  const { data: telegramUsers, error: telegramError } = await supabase
+    .from('telegram_users')
+    .select('telegram_id, chat_id, user_id')
+    .in('user_id', userIds);
+
+  if (telegramError || !telegramUsers || telegramUsers.length === 0) {
+    if (telegramError) {
+      console.error('Error fetching telegram users:', telegramError);
+    }
     return { sent: 0, failed: 0 };
   }
 
   let sent = 0;
   let failed = 0;
 
-  const emoji = updateType === 'cancelled' ? '❌' : '📝';
-  const title = updateType === 'cancelled' ? 'Event Cancelled' : 'Event Updated';
+  const emojiMap = { cancelled: '❌', updated: '📝', deleted: '🗑️' };
+  const titleMap = { cancelled: 'Event Cancelled', updated: 'Event Updated', deleted: 'Event Deleted' };
+  const emoji = emojiMap[updateType];
+  const title = titleMap[updateType];
+
+  const messageMap = {
+    cancelled: 'This event has been cancelled\\. We apologize for any inconvenience\\.',
+    updated: 'This event has been updated\\. Please check the event page for the latest details\\.',
+    deleted: 'This event has been deleted and is no longer available\\.',
+  };
 
   const message = `${emoji} *${title}*\n\n` +
     `*${escapeMarkdown(event.title)}*\n` +
     `🏠 ${escapeMarkdown(community.name)}\n\n` +
-    (updateType === 'cancelled'
-      ? 'This event has been cancelled\\. We apologize for any inconvenience\\.'
-      : 'This event has been updated\\. Please check the event page for the latest details\\.') +
-    `\n\n🔗 [View Event](${config.appBaseUrl}/c/${community.slug}/events/${event.id})`;
+    messageMap[updateType] +
+    (updateType !== 'deleted'
+      ? `\n\n🔗 [View Event](${config.appBaseUrl}/c/${community.slug}/events/${event.id})`
+      : '');
 
-  for (const reg of registrations) {
-    const telegramInfo = reg.telegram_users as any;
+  for (const telegramInfo of telegramUsers) {
     try {
-      await bot.telegram.sendMessage(telegramInfo.chat_id, message, {
+      await bot.telegram.sendMessage(Number(telegramInfo.chat_id), message, {
         parse_mode: 'MarkdownV2',
         link_preview_options: { is_disabled: true },
       });
@@ -103,6 +122,7 @@ export async function notifyEventUpdate(
     }
   }
 
+  console.log(`Event ${updateType} notification sent: ${sent} success, ${failed} failed`);
   return { sent, failed };
 }
 

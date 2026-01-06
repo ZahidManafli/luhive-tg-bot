@@ -98,6 +98,18 @@ export function createWebhookServer(bot: Telegraf<any>): express.Application {
         }
       }
 
+      // Handle event deletion
+      if (payload.type === 'DELETE' && payload.old_record?.status === 'published') {
+        console.log(`Event deleted: ${payload.old_record.title}`);
+        const result = await notifyEventUpdate(bot, payload.old_record, 'deleted');
+        res.json({
+          success: true,
+          message: 'Deletion notifications sent',
+          ...result,
+        });
+        return;
+      }
+
       res.json({ success: true, message: 'No action taken' });
     } catch (error) {
       console.error('Webhook error:', error);
