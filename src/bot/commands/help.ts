@@ -32,7 +32,7 @@ async function handleHelp(ctx: Context): Promise<void> {
 You can also use the menu buttons at the bottom of the screen for quick access\\.
 
 🔔 *Notifications*
-When logged in, you'll receive notifications for:
+When logged in, you\\'ll receive notifications for:
 • New events from your communities
 • Event updates and cancellations
 
@@ -41,7 +41,7 @@ When logged in, you'll receive notifications for:
 • Join communities to see their events
 • Register for events to get reminders
 
-Need more help? Visit our website at luhive\\.com
+Need more help\\? Visit our website at luhive\\.com
 `;
 
   await ctx.reply(helpMessage, {

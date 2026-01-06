@@ -14,7 +14,7 @@ async function handleStart(ctx: Context): Promise<void> {
   const telegramUser = await isLoggedIn(telegramId);
 
   const welcomeMessage = `
-🐝 *Welcome to Luhive Bot!*
+🐝 *Welcome to Luhive Bot\\!*
 
 Discover and engage with communities, browse events, and never miss an update\\.
 

@@ -233,12 +233,12 @@ export function formatEventMessage(event: Event, communityName?: string): string
     message += `🏠 ${escapeMarkdown(communityName)}\n`;
   }
 
-  message += `📅 ${startDate.format('dddd, MMMM D, YYYY')}\n`;
+  message += `📅 ${escapeMarkdown(startDate.format('dddd, MMMM D, YYYY'))}\n`;
   message += `⏰ ${startDate.format('h:mm A')}`;
   if (endDate) {
-    message += ` - ${endDate.format('h:mm A')}`;
+    message += ` \\- ${endDate.format('h:mm A')}`;
   }
-  message += ` (${event.timezone})\n`;
+  message += ` \\(${escapeMarkdown(event.timezone)}\\)\n`;
 
   if (event.location_address && event.event_type !== 'online') {
     message += `📍 ${escapeMarkdown(event.location_address)}\n`;
@@ -246,7 +246,7 @@ export function formatEventMessage(event: Event, communityName?: string): string
 
   if (event.description) {
     const truncatedDesc = event.description.length > 200
-      ? event.description.substring(0, 200) + '...'
+      ? event.description.substring(0, 200) + '\\.\\.\\.'
       : event.description;
     message += `\n${escapeMarkdown(truncatedDesc)}`;
   }

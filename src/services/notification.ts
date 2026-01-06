@@ -21,7 +21,7 @@ export async function notifyNewEvent(
   let sent = 0;
   let failed = 0;
 
-  const message = `🎉 *New Event from ${escapeMarkdown(community.name)}!*\n\n` +
+  const message = `🎉 *New Event from ${escapeMarkdown(community.name)}\\!*\n\n` +
     formatEventMessage(event) +
     `\n\n🔗 [View Event](${config.appBaseUrl}/c/${community.slug}/events/${event.id})`;
 
